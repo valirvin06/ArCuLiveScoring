@@ -342,11 +342,39 @@ export class PgStorage implements IStorage {
       return b.bronzeCount - a.bronzeCount;
     });
     
-    // Add rank
-    return teamScores.map((team, index) => ({
-      ...team,
-      rank: index + 1
-    }));
+    // Add rank with proper tie handling
+    let currentRank = 1;
+    let prevScore = -1;
+    let prevGold = -1;
+    let prevSilver = -1;
+    let prevBronze = -1;
+    let offset = 0;
+    
+    return teamScores.map((team, index) => {
+      // Check if this team has the same score as the previous team
+      if (index > 0 && 
+          team.totalScore === prevScore && 
+          team.goldCount === prevGold &&
+          team.silverCount === prevSilver &&
+          team.bronzeCount === prevBronze) {
+        // This is a tie, use the same rank
+        offset++;
+      } else {
+        // Not a tie, use current position accounting for previous ties
+        currentRank = index + 1;
+      }
+      
+      // Save current team's values for the next comparison
+      prevScore = team.totalScore;
+      prevGold = team.goldCount;
+      prevSilver = team.silverCount;
+      prevBronze = team.bronzeCount;
+      
+      return {
+        ...team,
+        rank: currentRank
+      };
+    });
   }
 
   async getEventResults(): Promise<EventResult[]> {
