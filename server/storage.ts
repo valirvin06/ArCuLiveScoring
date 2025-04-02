@@ -286,13 +286,15 @@ export class MemStorage implements IStorage {
   }
 
   async createMedal(medal: InsertMedal): Promise<Medal> {
-    // Make sure we don't duplicate medals for the same team and event
+    // Only update existing medal if it's the same type (GOLD, SILVER, BRONZE)
+    // For NON_WINNER, always create a new medal entry to allow multiple non-winner entries per team
     const existingMedal = Array.from(this.medalsData.values()).find(
-      m => m.eventId === medal.eventId && m.teamId === medal.teamId
+      m => m.eventId === medal.eventId && m.teamId === medal.teamId && 
+          (medal.medalType !== 'NON_WINNER' && m.medalType === medal.medalType)
     );
 
-    if (existingMedal) {
-      // If there's an existing medal, update it and return
+    if (existingMedal && medal.medalType !== 'NON_WINNER') {
+      // If there's an existing medal of the same type, update it and return
       // Remove from published set if it was published, as it's now changed
       if (this.publishedMedalIds.has(existingMedal.id)) {
         this.publishedMedalIds.delete(existingMedal.id);

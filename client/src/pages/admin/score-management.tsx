@@ -40,13 +40,12 @@ const ScoreManagement = () => {
   
   const isLoading = eventsLoading || teamsLoading;
   
-  // Get available teams (those not already selected for medals, non-winners, or no entries)
+  // Get available teams (those not already in non-winners or no entries)
   const getAvailableTeams = () => {
     if (!teams) return [];
     
-    const selectedTeams = [goldTeam, silverTeam, bronzeTeam].filter(Boolean) as number[];
+    // Now allow the same team to win multiple medals
     return teams.filter(team => 
-      !selectedTeams.includes(team.id) && 
       !nonWinners.includes(team.id) && 
       !noEntries.includes(team.id)
     );
