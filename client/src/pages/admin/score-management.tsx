@@ -20,7 +20,7 @@ const ScoreManagement = () => {
   const { toast } = useToast();
   const { data: events, isLoading: eventsLoading } = useEvents();
   const { data: teams, isLoading: teamsLoading } = useTeams();
-  
+
   const [selectedEvent, setSelectedEvent] = useState<number | null>(null);
   const [goldTeam, setGoldTeam] = useState<number | null>(null);
   const [silverTeam, setSilverTeam] = useState<number | null>(null);
@@ -28,7 +28,7 @@ const ScoreManagement = () => {
   const [nonWinners, setNonWinners] = useState<number[]>([]);
   const [noEntries, setNoEntries] = useState<number[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Reset form when event changes
   useEffect(() => {
     setGoldTeam(null);
@@ -37,20 +37,20 @@ const ScoreManagement = () => {
     setNonWinners([]);
     setNoEntries([]);
   }, [selectedEvent]);
-  
+
   const isLoading = eventsLoading || teamsLoading;
-  
+
   // Get available teams (those not already in non-winners or no entries)
   const getAvailableTeams = () => {
     if (!teams) return [];
-    
+
     // Now allow the same team to win multiple medals
     return teams.filter(team => 
       !nonWinners.includes(team.id) && 
       !noEntries.includes(team.id)
     );
   };
-  
+
   // Add team to non-winners - now allowing multiple entries for the same team
   const addNonWinner = (teamId: number) => {
     // Remove from no entries if present
@@ -60,12 +60,12 @@ const ScoreManagement = () => {
     // Always add the team to non-winners, even if it's already there
     setNonWinners([...nonWinners, teamId]);
   };
-  
+
   // Remove team from non-winners
   const removeNonWinner = (teamId: number) => {
     setNonWinners(nonWinners.filter(id => id !== teamId));
   };
-  
+
   // Add team to no entries
   const addNoEntry = (teamId: number) => {
     if (!noEntries.includes(teamId)) {
@@ -74,12 +74,12 @@ const ScoreManagement = () => {
       setNoEntries([...noEntries, teamId]);
     }
   };
-  
+
   // Remove team from no entries
   const removeNoEntry = (teamId: number) => {
     setNoEntries(noEntries.filter(id => id !== teamId));
   };
-  
+
   // Handle form submission
   const handleSubmit = async () => {
     if (!selectedEvent) {
@@ -90,16 +90,16 @@ const ScoreManagement = () => {
       });
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       // Get score settings for point values
       const settingsResponse = await fetch('/api/score-settings');
       const settings = await settingsResponse.json();
-      
+
       const medals = [];
-      
+
       // Add gold medal
       if (goldTeam) {
         medals.push({
@@ -109,7 +109,7 @@ const ScoreManagement = () => {
           points: settings.goldPoints
         });
       }
-      
+
       // Add silver medal
       if (silverTeam) {
         medals.push({
@@ -119,7 +119,7 @@ const ScoreManagement = () => {
           points: settings.silverPoints
         });
       }
-      
+
       // Add bronze medal
       if (bronzeTeam) {
         medals.push({
@@ -129,7 +129,7 @@ const ScoreManagement = () => {
           points: settings.bronzePoints
         });
       }
-      
+
       // Add non-winners
       for (const teamId of nonWinners) {
         medals.push({
@@ -139,7 +139,7 @@ const ScoreManagement = () => {
           points: settings.nonWinnerPoints
         });
       }
-      
+
       // Add no-entry teams
       for (const teamId of noEntries) {
         medals.push({
@@ -149,15 +149,15 @@ const ScoreManagement = () => {
           points: 0 // No points for no-entry
         });
       }
-      
+
       // Create medals one by one
       for (const medal of medals) {
         await apiRequest('POST', '/api/medals', medal);
       }
-      
+
       // Update event status to completed
       await apiRequest('POST', '/api/events/' + selectedEvent, { status: 'COMPLETED' });
-      
+
       // Reset form
       setSelectedEvent(null);
       setGoldTeam(null);
@@ -165,12 +165,12 @@ const ScoreManagement = () => {
       setBronzeTeam(null);
       setNonWinners([]);
       setNoEntries([]);
-      
+
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['/api/medals'] });
       queryClient.invalidateQueries({ queryKey: ['/api/events'] });
       queryClient.invalidateQueries({ queryKey: ['/api/scoreboard'] });
-      
+
       toast({
         title: "Success",
         description: "Results saved successfully"
@@ -186,12 +186,12 @@ const ScoreManagement = () => {
       setIsSubmitting(false);
     }
   };
-  
+
   return (
     <Card>
       <CardContent className="p-6">
         <h2 className="text-2xl font-montserrat font-semibold mb-6 text-[#000080]">Score Management</h2>
-        
+
         {isLoading ? (
           <div className="flex items-center justify-center h-40">
             <Loader2 className="h-8 w-8 text-[#000080] animate-spin" />
@@ -216,11 +216,11 @@ const ScoreManagement = () => {
                 </SelectContent>
               </Select>
             </div>
-            
+
             {selectedEvent && (
               <form className="mb-8">
                 <h3 className="text-lg font-semibold mb-4">Assign Places</h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="mb-4">
                     <label className="block mb-2 text-sm font-medium text-gray-700">Gold Medal (1st Place)</label>
@@ -232,6 +232,7 @@ const ScoreManagement = () => {
                         <SelectValue placeholder="Select Team" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
                         {getAvailableTeams().map((team) => (
                           <SelectItem key={team.id} value={team.id.toString()}>
                             {team.name}
@@ -240,7 +241,7 @@ const ScoreManagement = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="mb-4">
                     <label className="block mb-2 text-sm font-medium text-gray-700">Silver Medal (2nd Place)</label>
                     <Select
@@ -251,6 +252,7 @@ const ScoreManagement = () => {
                         <SelectValue placeholder="Select Team" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
                         {getAvailableTeams().map((team) => (
                           <SelectItem key={team.id} value={team.id.toString()}>
                             {team.name}
@@ -259,7 +261,7 @@ const ScoreManagement = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="mb-4">
                     <label className="block mb-2 text-sm font-medium text-gray-700">Bronze Medal (3rd Place)</label>
                     <Select
@@ -270,6 +272,7 @@ const ScoreManagement = () => {
                         <SelectValue placeholder="Select Team" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
                         {getAvailableTeams().map((team) => (
                           <SelectItem key={team.id} value={team.id.toString()}>
                             {team.name}
@@ -279,10 +282,10 @@ const ScoreManagement = () => {
                     </Select>
                   </div>
                 </div>
-                
+
                 <div className="mt-4">
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Non-Medal Participants</h4>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
                     {/* Show all available teams (without filtering out those already in nonWinners) */}
                     {getAvailableTeams().map(team => (
@@ -299,7 +302,7 @@ const ScoreManagement = () => {
                       </Button>
                     ))}
                   </div>
-                  
+
                   {nonWinners.length > 0 && (
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <div className="flex flex-wrap gap-2">
@@ -331,10 +334,10 @@ const ScoreManagement = () => {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="mt-4">
                   <h4 className="text-sm font-medium text-gray-700 mb-2">No Entry Teams (0 points)</h4>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
                     {getAvailableTeams().filter(team => 
                       !noEntries.includes(team.id)
@@ -352,7 +355,7 @@ const ScoreManagement = () => {
                       </Button>
                     ))}
                   </div>
-                  
+
                   {noEntries.length > 0 && (
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <div className="flex flex-wrap gap-2">
@@ -375,7 +378,7 @@ const ScoreManagement = () => {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="flex justify-end mt-6">
                   <Button
                     type="button"
