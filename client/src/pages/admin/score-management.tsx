@@ -51,15 +51,14 @@ const ScoreManagement = () => {
     );
   };
   
-  // Add team to non-winners
+  // Add team to non-winners - now allowing multiple entries for the same team
   const addNonWinner = (teamId: number) => {
-    if (!nonWinners.includes(teamId)) {
-      // Remove from no entries if present
-      if (noEntries.includes(teamId)) {
-        setNoEntries(noEntries.filter(id => id !== teamId));
-      }
-      setNonWinners([...nonWinners, teamId]);
+    // Remove from no entries if present
+    if (noEntries.includes(teamId)) {
+      setNoEntries(noEntries.filter(id => id !== teamId));
     }
+    // Always add the team to non-winners, even if it's already there
+    setNonWinners([...nonWinners, teamId]);
   };
   
   // Remove team from non-winners
@@ -70,10 +69,8 @@ const ScoreManagement = () => {
   // Add team to no entries
   const addNoEntry = (teamId: number) => {
     if (!noEntries.includes(teamId)) {
-      // Remove from non-winners if present
-      if (nonWinners.includes(teamId)) {
-        setNonWinners(nonWinners.filter(id => id !== teamId));
-      }
+      // Remove ALL instances from non-winners if present
+      setNonWinners(nonWinners.filter(id => id !== teamId));
       setNoEntries([...noEntries, teamId]);
     }
   };
@@ -287,7 +284,8 @@ const ScoreManagement = () => {
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Non-Medal Participants</h4>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
-                    {getAvailableTeams().filter(team => !nonWinners.includes(team.id)).map(team => (
+                    {/* Show all available teams (without filtering out those already in nonWinners) */}
+                    {getAvailableTeams().map(team => (
                       <Button
                         key={team.id}
                         type="button"
@@ -296,7 +294,8 @@ const ScoreManagement = () => {
                         className="justify-start"
                       >
                         <span className="material-icons mr-2 text-sm">add</span>
-                        {team.name}
+                        {team.name} {nonWinners.filter(id => id === team.id).length > 0 ? 
+                          `(${nonWinners.filter(id => id === team.id).length})` : ''}
                       </Button>
                     ))}
                   </div>
@@ -304,14 +303,23 @@ const ScoreManagement = () => {
                   {nonWinners.length > 0 && (
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <div className="flex flex-wrap gap-2">
-                        {nonWinners.map(teamId => {
+                        {nonWinners.map((teamId, index) => {
                           const team = teams?.find(t => t.id === teamId);
                           return team ? (
-                            <Badge key={teamId} variant="secondary" className="flex items-center gap-1 px-3 py-2">
-                              {team.name}
+                            <Badge 
+                              key={`${teamId}-${index}`} 
+                              variant="secondary" 
+                              className="flex items-center gap-1 px-3 py-2"
+                            >
+                              {team.name} {/* Using the index to uniquely identify each entry */}
                               <button
                                 type="button"
-                                onClick={() => removeNonWinner(teamId)}
+                                onClick={() => {
+                                  // Remove this specific occurrence of the team
+                                  const newNonWinners = [...nonWinners];
+                                  newNonWinners.splice(index, 1);
+                                  setNonWinners(newNonWinners);
+                                }}
                                 className="ml-1 text-gray-500 hover:text-gray-700 focus:outline-none"
                               >
                                 <span className="material-icons text-sm">close</span>
@@ -329,8 +337,8 @@ const ScoreManagement = () => {
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
                     {getAvailableTeams().filter(team => 
-                      !noEntries.includes(team.id) && 
-                      !nonWinners.includes(team.id)
+                      !noEntries.includes(team.id)
+                      // Removed !nonWinners.includes(team.id) condition to allow teams already in nonWinners
                     ).map(team => (
                       <Button
                         key={team.id}
